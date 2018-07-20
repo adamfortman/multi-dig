@@ -1,0 +1,154 @@
+#!/bin/bash
+
+nameservers="Level3 209.244.0.3 209.244.0.4\n\
+Verisign 64.6.64.6 64.6.65.6\n\
+Google 8.8.8.8 8.8.4.4\n\
+Quad9 9.9.9.9 149.112.112.112\n\
+DNS.WATCH 84.200.69.80 84.200.70.40\n\
+Comodo_Secure_DNS 8.26.56.26 8.20.247.20\n\
+OpenDNS_Home 208.67.222.222 208.67.220.220\n\
+Norton_ConnectSafe 199.85.126.10 199.85.127.10\n\
+SafeDNS 195.46.39.39 195.46.39.40\n\
+Dyn 216.146.35.35 216.146.36.36\n\
+FreeDNS 37.235.1.174 37.235.1.177\n\
+Yandex.DNS 77.88.8.8 77.88.8.1\n\
+UncensoredDNS 91.239.100.100 89.233.43.71\n\
+Neustar 156.154.70.1 156.154.71.1\n\
+Cloudflare 1.1.1.1 1.0.0.1"
+
+
+digall() {
+	#$1 ns
+	for r in SOA A AAAA CAA MX NS TXT; do
+		results=$(dig $r @$1 $domain | awk -v r="$r" '$1 ~ /^[^;]/ && $4 == r {print}')
+		if [[ ! -z $results ]]; then
+			case $r in
+				A)
+					printf "\e[0;32m${results}\e[0m\n"
+					;;
+				AAAA)
+					printf "\e[0;32m${results}\e[0m\n"
+					;;
+				MX)
+					printf "\e[0;31m${results}\e[0m\n"
+					;;
+				TXT)
+					printf "\e[0;34m${results}\e[0m\n"
+					;;
+				NS)
+					printf "\e[0;36m${results}\e[0m\n"
+					;;
+				CNAME)
+					printf "\e[0;35m${results}\e[0m\n"
+					;;
+				*)
+					printf "\e[0;33m${results}\e[0m\n"
+					;;
+	        esac
+		fi
+	done
+}
+
+getrootns() {
+	for i in {a..m}; do
+		if [[ $(dig +short ${i}.root-servers.net @${i}.root-servers.net) ]]; then
+			rootns="${i}"
+			break
+		fi
+	done
+	if [[ -z "${rootns}" ]]; then
+		echo "Could not locate a root nameserver to use."
+		exit 5
+	fi
+}
+
+digns() {
+	rootns="m.root-servers.net"
+	domainrootns=$(dig +noall +authority @$rootns $domain | awk '{print$5}')
+	for ns in $(echo "$domainrootns"); do
+		domainauthns=$(dig +noall +authority @$ns $domain)
+		if [[ $(echo "domainauthns" | grep $domain) ]]; then
+			break
+		fi
+	done
+	domainauthns=$(echo -e "$domainauthns" | awk '{print$5}')
+	if [[ ! -z $domainauthns ]]; then
+		for authns in $domainauthns; do
+			if [[ $nslist ]]; then
+				nslist="$authns $(dig +short $authns|head -n1)\n$nslist"
+			else
+				nslist="$authns $(dig +short $authns|head -n1)"
+			fi
+		done
+		echo -e $nslist
+	else
+		exit 1
+	fi
+}
+
+how2() {
+	printf "Usage: $0 <option> <domain>\n\
+	Options:\n\n\
+	-h|--how2 - prints this message\n\
+	-b - check against authoritative and custom public nameserver list\n
+	-c - check against custom public nameserver list only\n\n
+	Notes:
+		* defaults to checking authoritative only"
+	exit
+}
+
+custom_list() {
+	while read provider primary secondary; do
+		for ip in $primary $secondary; do
+			printf "\e[01;32mresults from $provider [ $ip ]\e[0m\n"
+			digall $ip | sed -r 's/^/\t/g'
+		done
+	done < <(printf "$nameservers")
+}
+
+auth() {
+	while read provider ip; do
+		printf "\e[01;32mresults from $provider [ $ip ]\e[0m\n"
+		digall $ip | sed -r 's/^/\t/g'
+	done < <(digns)
+}
+
+if [[ $# -eq 0 ]]; then
+	how2
+elif [[ $# -eq 1 ]]; then
+	n=1
+	if [[ "${!n}" =~ ^- ]]; then
+		echo "Domain required"
+		how2
+	else
+		domain="${!n}"
+	fi
+elif [[ $# -gt 1 ]]; then
+	n=1
+	case ${!n} in
+		-b)
+			type='b'
+			;;
+		-c)
+			type='c'
+			;;
+		-h|--help)
+			how2
+			;;
+		*)
+			how2
+			;;
+	esac
+	n=2
+	domain="${!n}"
+fi
+
+if [[ $type == "b" ]]; then
+	custom_list
+	auth
+echo "b"
+elif [[ $type == "c" ]]; then
+	custom_list
+else
+	auth
+fi
