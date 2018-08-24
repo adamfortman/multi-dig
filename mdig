@@ -20,7 +20,7 @@ Cloudflare 1.1.1.1 1.0.0.1"
 digall() {
 	#$1 ns
 	for r in SOA A AAAA CAA MX NS TXT; do
-		results=$(dig $r @$1 $domain | awk -v r="$r" '$1 ~ /^[^;]/ && $4 == r {print}')
+		results=$(dig +noall +answer $r @$1 $domain | awk -v r="$r" '$1 ~ /^[^;]/ && $4 == r {print}')
 		if [[ ! -z $results ]]; then
 			case $r in
 				A)
