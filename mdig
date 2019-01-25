@@ -49,29 +49,28 @@ digall() {
 	done
 }
 
-getrootns() {
-	for i in {a..m}; do
-		if [[ $(dig +short ${i}.root-servers.net @${i}.root-servers.net) ]]; then
-			rootns="${i}"
-			break
-		fi
-	done
-	if [[ -z "${rootns}" ]]; then
-		echo "Could not locate a root nameserver to use."
-		exit 5
-	fi
-}
-
 digns() {
-	rootns="m.root-servers.net"
+#	rootns="m.root-servers.net"
+	# Generate random root-server
+	sub=$(cat /dev/urandom | tr -dc 'a-m' | fold -w 32 | head -c 1)
+	rootns="${sub}.root-servers.net"
+
+	# Get tld authoritative NS
 	domainrootns=$(dig +noall +authority @$rootns $domain | awk '{print$5}')
-	for ns in $(echo "$domainrootns"); do
-		domainauthns=$(dig +noall +authority @$ns $domain)
-		if [[ $(echo "domainauthns" | grep $domain) ]]; then
+
+	# Check for domain against tld's authoritative NS
+	# If found, set the domain's auth NS accordingly
+	# break out of loop
+	for ns in $domainrootns; do
+		results=$(dig +noall +authority @$ns $domain)
+		if [[ ! -z $(echo "$results" | grep $domain) ]]; then
+			domainauthns=$(echo -e "$results" | awk '{print$5}')
 			break
 		fi
 	done
-	domainauthns=$(echo -e "$domainauthns" | awk '{print$5}')
+
+	# If the parameter is not empty, get the IP address
+	# for each NS
 	if [[ ! -z $domainauthns ]]; then
 		for authns in $domainauthns; do
 			if [[ $nslist ]]; then
@@ -80,20 +79,20 @@ digns() {
 				nslist="$authns $(dig +short $authns|head -n1)"
 			fi
 		done
-		echo -e $nslist
 	else
+		echo "No auth NS found for $domain"
 		exit 1
 	fi
 }
 
 how2() {
-	printf "Usage: $0 <option> <domain>\n\
-	Options:\n\n\
-	-h|--how2 - prints this message\n\
-	-b - check against authoritative and custom public nameserver list\n
-	-c - check against custom public nameserver list only\n\n
-	Notes:
-		* defaults to checking authoritative only"
+	echo -e "Usage: $0 <option> <domain>\n
+Options:
+	-h|--how2 - prints this message
+	-b - check against authoritative and custom public nameserver list
+	-c - check against custom public nameserver list only\n
+Notes:
+	* defaults to checking authoritative only\n"
 	exit
 }
 
@@ -107,25 +106,26 @@ custom_list() {
 }
 
 auth() {
-	while read provider ip; do
-		printf "\e[01;32mresults from $provider [ $ip ]\e[0m\n"
-		digall $ip | sed -r 's/^/\t/g'
-	done < <(digns)
+	digns
+	if [[ ! -z $nslist ]]; then
+		while read provider ip; do
+			printf "\e[01;32mresults from $provider [ $ip ]\e[0m\n"
+			digall $ip | sed -r 's/^/\t/g'
+		done < <(echo -e $nslist)
+	fi
 }
 
 if [[ $# -eq 0 ]]; then
 	how2
 elif [[ $# -eq 1 ]]; then
-	n=1
-	if [[ "${!n}" =~ ^- ]]; then
-		echo "Domain required"
+	if [[ "${1}" =~ ^- ]]; then
+		echo "*Domain required*"
 		how2
 	else
-		domain="${!n}"
+		domain="${1}"
 	fi
 elif [[ $# -gt 1 ]]; then
-	n=1
-	case ${!n} in
+	case ${1} in
 		-b)
 			type='b'
 			;;
@@ -139,13 +139,12 @@ elif [[ $# -gt 1 ]]; then
 			how2
 			;;
 	esac
-	n=2
-	domain="${!n}"
+	domain="${2}"
 fi
 
 if [[ $type == "b" ]]; then
-	custom_list
 	auth
+	custom_list
 echo "b"
 elif [[ $type == "c" ]]; then
 	custom_list
