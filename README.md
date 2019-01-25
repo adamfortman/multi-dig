@@ -7,6 +7,7 @@ This bash script is a spin off the basic dig functionality. Default usage finds 
 
 ## Usage
 
+```
 Usage: ./mdig <option> <domain>
 	Options:
 
@@ -18,3 +19,4 @@ Usage: ./mdig <option> <domain>
 
 	Notes:
 		* defaults to checking authoritative only
+```
