@@ -52,7 +52,7 @@ digall() {
 digns() {
 #	rootns="m.root-servers.net"
 	# Generate random root-server
-	sub=$(cat /dev/urandom | tr -dc 'a-m' | fold -w 32 | head -c 1)
+	sub=$(openssl rand -hex 4 | tr -dc 'a-m' | fold -w 32 | head -c 1)
 	rootns="${sub}.root-servers.net"
 
 	# Get tld authoritative NS
