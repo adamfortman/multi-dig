@@ -26,10 +26,8 @@ Cloudflare 1.1.1.1 1.0.0.1"
 
 
 digall() {
-	#$1 ns
-	for r in SOA A AAAA CAA MX NS TXT; do
+	for r in ${record}; do
 		results=$(dig +time=2 +tries=1 +noall +answer $r @$1 $domain)
-		#results=$(dig +time=2 +tries=1 +noall +answer $r @$1 $domain | awk -v r="$r" '$1 ~ /^[^;]/ && $4 == r {print}')
 		if [[ $results =~ 'connection timed out' ]]; then
 			printf "\e[1;35mFAILED TO RETRIEVE ${r} RECORD WITHIN TIMEOUT\e[0m\n"
 		elif [[ ! -z $results ]]; then
@@ -61,7 +59,6 @@ digall() {
 }
 
 digns() {
-#	rootns="m.root-servers.net"
 	# Generate random root-server
 	sub=$(openssl rand -hex 4 | tr -dc 'a-m' | fold -w 32 | head -c 1)
 	rootns="${sub}.root-servers.net"
@@ -84,10 +81,13 @@ digns() {
 	# for each NS
 	if [[ ! -z $domainauthns ]]; then
 		for authns in $domainauthns; do
-			if [[ $nslist ]]; then
-				nslist="$authns $(dig +time=2 +tries=1 +short $authns|head -n1)\n$nslist"
-			else
-				nslist="$authns $(dig +time=2 +tries=1 +short $authns|head -n1)"
+			authnsip=$(dig +time=2 +tries=1 +short $authns|head -n1)
+			if [[ ! -z $authnsip ]]; then
+				if [[ ! -z $nslist ]]; then
+					nslist="$authns $authnsip\n$nslist"
+				else
+					nslist="$authns $authnsip"
+				fi
 			fi
 		done
 	else
@@ -126,33 +126,66 @@ auth() {
 	fi
 }
 
-if [[ $# -eq 0 ]]; then
-	how2
-elif [[ $# -eq 1 ]]; then
-	if [[ "${1}" =~ ^- ]]; then
-		echo "*Domain required*"
-		how2
+check_exist() {
+	local -n to_check="$1"
+	value="$2"
+    if [[ $to_check ]]; then
+		return
+	elif [[ ${!to_check} == "domain" ]]; then
+		domain=$value
 	else
-		domain="${1}"
-	fi
-elif [[ $# -gt 1 ]]; then
-	case ${1} in
+		record=$value
+    fi
+}
+
+while (( "$#" )); do
+	case ${1,,} in
 		-b)
+			check_exist type
 			type='b'
 			;;
 		-c)
+			check_exist type
 			type='c'
 			;;
 		-h|--help)
 			how2
 			;;
-		*)
-			how2
+		soa)
+			check_exist record $1
+			;;
+		a)
+			check_exist record $1
+			;;
+		aaaa)
+			check_exist record $1
+			;;
+		caa)
+			check_exist record $1
+			;;
+		mx)
+			check_exist record $1
+			;;
+		ns)
+			check_exist record $1
+			;;
+		txt)
+			check_exist record $1
+			;;
+		*.*)
+			check_exist domain $1
 			;;
 	esac
-	domain="${2}"
-fi
+shift
+done
 
+if [[ -z $domain ]]; then
+	echo "No domain found in arguments"
+	how2
+fi
+if [[ -z $record ]]; then
+	record="SOA A AAAA CAA MX NS TXT"
+fi
 if [[ $type == "b" ]]; then
 	auth
 	custom_list
