@@ -79,7 +79,7 @@ digns() {
 	# break out of loop
 	for ns in $domainrootns; do
 		results=$(dig +time=2 +tries=1 +noall +authority @$ns $domain)
-		if [[ ! -z $(echo "$results" | grep $domain) ]]; then
+		if [[ ! -z $(echo "$results" | awk '$4 == "NS" {print$4}') ]]; then
 			domainauthns=$(echo -e "$results" | awk '{print$5}')
 			break
 		fi
