@@ -68,7 +68,10 @@ digall() {
 
 digns() {
 	# Generate random root-server
-	sub=$(openssl rand -hex 4 | tr -dc 'a-m' | fold -w 32 | head -c 1)
+	sub=$(openssl rand -hex 4 | tr -dc 'a-m' | head -c 1)
+	while [[ -z $sub ]]; do
+		sub=$(openssl rand -hex 4 | tr -dc 'a-m' | head -c 1)
+	done
 	rootns="${sub}.root-servers.net"
 
 	# Get tld authoritative NS
