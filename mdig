@@ -8,22 +8,6 @@ Norton_ConnectSafe 199.85.126.10 199.85.127.10\n\
 Dyn 216.146.35.35 216.146.36.36\n\
 Cloudflare 1.1.1.1 1.0.0.1"
 
-#nameservers="Level3 209.244.0.3 209.244.0.4\n\
-#Verisign 64.6.64.6 64.6.65.6\n\
-#Google 8.8.8.8 8.8.4.4\n\
-#Quad9 9.9.9.9 149.112.112.112\n\
-#DNS.WATCH 84.200.69.80 84.200.70.40\n\
-#Comodo_Secure_DNS 8.26.56.26 8.20.247.20\n\
-#OpenDNS_Home 208.67.222.222 208.67.220.220\n\
-#Norton_ConnectSafe 199.85.126.10 199.85.127.10\n\
-#SafeDNS 195.46.39.39 195.46.39.40\n\
-#Dyn 216.146.35.35 216.146.36.36\n\
-#FreeDNS 37.235.1.174 37.235.1.177\n\
-#Yandex.DNS 77.88.8.8 77.88.8.1\n\
-#UncensoredDNS 91.239.100.100 89.233.43.71\n\
-#Neustar 156.154.70.1 156.154.71.1\n\
-#Cloudflare 1.1.1.1 1.0.0.1"
-
 
 digall() {
 	for r in ${record}; do
@@ -66,7 +50,7 @@ digall() {
 	done
 }
 
-digns() {
+resolve_auth_ns() {
 	# Generate random root-server
 	sub=$(openssl rand -hex 4 | tr -dc 'a-m' | head -c 1)
 	while [[ -z $sub ]]; do
@@ -128,7 +112,6 @@ custom_list() {
 }
 
 auth() {
-	digns
 	if [[ ! -z $nslist ]]; then
 		while read provider ip; do
 			printf "\e[01;32mresults from $provider [ $ip ]\e[0m\n"
@@ -144,20 +127,26 @@ check_exist() {
 		return
 	elif [[ ${!to_check} == "domain" ]]; then
 		domain=$value
-	else
+	elif [[ ${!to_check} == "record" ]]; then
 		record=${value^^}
+	elif [[ ${!to_check} == "which_ns" ]]; then
+		which_ns="$value"
     fi
 }
 
 while (( "$#" )); do
 	case ${1,,} in
+		--nsinfo)
+			check_exist ns_info
+			ns_info=1
+			;;
 		-b)
-			check_exist type
-			type='b'
+			check_exist which_ns b
+#			which_ns='b'
 			;;
 		-c)
-			check_exist type
-			type='c'
+			check_exist which_ns c
+#			which_ns='c'
 			;;
 		-h|--help)
 			how2
@@ -200,11 +189,21 @@ fi
 if [[ -z $record ]]; then
 	record="SOA A AAAA CAA MX NS TXT"
 fi
-if [[ $type == "b" ]]; then
+
+resolve_auth_ns
+
+if [[ $ns_info ]]; then
+	echo -e "Authoritative nameserver report for:\n\n$domain\n"
+	while read provider ip; do
+		echo "$provider [$ip]"
+	done < <(echo -e $nslist) | column -t
+	exit
+fi
+
+if [[ $which_ns == "b" ]]; then
 	auth
 	custom_list
-echo "b"
-elif [[ $type == "c" ]]; then
+elif [[ $which_ns == "c" ]]; then
 	custom_list
 else
 	auth
