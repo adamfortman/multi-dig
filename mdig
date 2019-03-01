@@ -48,6 +48,7 @@ digall() {
 	        esac
 		fi
 	done
+echo
 }
 
 resolve_auth_ns() {
@@ -104,7 +105,7 @@ Notes:
 
 custom_list() {
 	if [[ ! -z $custom_nameservers ]]; then
-		echo -e "\nCustom nameserver list\n"
+		echo -e "===Custom nameserver list===\n"
 		while read provider primary secondary; do
 			for ip in $primary $secondary; do
 				printf "\e[01;32mresults from $provider [ $ip ]\e[0m\n"
@@ -116,7 +117,7 @@ custom_list() {
 
 auth() {
 	if [[ ! -z $nslist ]]; then
-		echo -e "\nAuthoritative nameservers\n"
+		echo -e "===Authoritative nameservers===\n"
 		while read provider ip; do
 			printf "\e[01;32mresults from $provider [ $ip ]\e[0m\n"
 			digall $ip | sed -r 's/^/\t/g'
@@ -127,7 +128,7 @@ auth() {
 local_resolve() {
 	local_ns=$(awk '/^nameserver/ {print$2}' /etc/resolv.conf)
 	if [[ ! -z $local_ns ]]; then
-		echo -e "\nLocal resolvers\n"
+		echo -e "===Local resolvers===\n"
 		for ns in $local_ns; do
 			printf "\e[01;32mresults from local resolver [ $ns ]\e[0m\n"
 			digall $ns | sed -r 's/^/\t/g'
