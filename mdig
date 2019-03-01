@@ -193,7 +193,7 @@ fi
 resolve_auth_ns
 
 if [[ $ns_info ]]; then
-	echo -e "Authoritative nameserver report for:\n\n$domain\n"
+	echo -e "Authoritative nameserver report for: $domain\n"
 	while read provider ip; do
 		echo "$provider [$ip]"
 	done < <(echo -e $nslist) | column -t
