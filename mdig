@@ -1,6 +1,6 @@
 #!/bin/bash
 
-nameservers="Level3 209.244.0.3 209.244.0.4\n\
+custom_nameservers="Level3 209.244.0.3 209.244.0.4\n\
 Verisign 64.6.64.6 64.6.65.6\n\
 Google 8.8.8.8 8.8.4.4\n\
 Comodo_Secure_DNS 8.26.56.26 8.20.247.20\n\
@@ -103,16 +103,20 @@ Notes:
 }
 
 custom_list() {
-	while read provider primary secondary; do
-		for ip in $primary $secondary; do
-			printf "\e[01;32mresults from $provider [ $ip ]\e[0m\n"
-			digall $ip | sed -r 's/^/\t/g'
-		done
-	done < <(echo -e "$nameservers")
+	if [[ ! -z $custom_nameservers ]]; then
+		echo -e "\nCustom nameserver list\n"
+		while read provider primary secondary; do
+			for ip in $primary $secondary; do
+				printf "\e[01;32mresults from $provider [ $ip ]\e[0m\n"
+				digall $ip | sed -r 's/^/\t/g'
+			done
+		done < <(echo -e "$custom_nameservers")
+	fi
 }
 
 auth() {
 	if [[ ! -z $nslist ]]; then
+		echo -e "\nAuthoritative nameservers\n"
 		while read provider ip; do
 			printf "\e[01;32mresults from $provider [ $ip ]\e[0m\n"
 			digall $ip | sed -r 's/^/\t/g'
@@ -120,6 +124,16 @@ auth() {
 	fi
 }
 
+local_resolve() {
+	local_ns=$(awk '/^nameserver/ {print$2}' /etc/resolv.conf)
+	if [[ ! -z $local_ns ]]; then
+		echo -e "\nLocal resolvers\n"
+		for ns in $local_ns; do
+			printf "\e[01;32mresults from local resolver [ $ns ]\e[0m\n"
+			digall $ns | sed -r 's/^/\t/g'
+		done
+	fi
+}
 check_exist() {
 	local -n to_check="$1"
 	value="$2"
@@ -140,13 +154,17 @@ while (( "$#" )); do
 			check_exist ns_info
 			ns_info=1
 			;;
-		-b)
-			check_exist which_ns b
-#			which_ns='b'
+		--all)
+			check_exist which_ns all
 			;;
-		-c)
-			check_exist which_ns c
-#			which_ns='c'
+		-a|--auth)
+			check_exist which_ns auth
+			;;
+		-c|--custom)
+			check_exist which_ns custom
+			;;
+		-l|--local)
+			check_exist which_ns local
 			;;
 		-h|--help)
 			how2
@@ -200,11 +218,16 @@ if [[ $ns_info ]]; then
 	exit
 fi
 
-if [[ $which_ns == "b" ]]; then
+if [[ $which_ns == "all" ]]; then
 	auth
 	custom_list
-elif [[ $which_ns == "c" ]]; then
+	local_resolve
+elif [[ $which_ns == "auth" ]]; then
+	auth
+elif [[ $which_ns == "custom" ]]; then
 	custom_list
+elif [[ $which_ns == "local" ]]; then
+	local_resolve
 else
 	auth
 fi
