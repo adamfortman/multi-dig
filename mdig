@@ -114,10 +114,11 @@ print_help() {
 	echo -e "Usage: $0 <options> <record(s)> <domain>\n
 Options:
 	-h|--help   - prints this message
-	   --all	- check against authoritative, custom, and local resolvers
+	--all		- check against authoritative, custom, and local resolvers
 	-a|--auth   - check against authoritative resolver list (default)
 	-c|--custom - check against custom public resolver list only
-	-l|--local  - check against local resolvers found in /etc/resolv.conf\n"
+	-l|--local  - check against local resolvers found in /etc/resolv.conf
+	--nsinfo    - print the authoritative nameservers and their IP addresses\n"
 	exit 1
 }
 
