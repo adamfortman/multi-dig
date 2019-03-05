@@ -72,10 +72,14 @@ resolve_auth_ns() {
 	# Check for domain against tld's authoritative NS
 	# If found, set and break out of loop
 	for ns in $tldns; do
-		results=$(dig +time=2 +tries=1 +noall +authority @$ns $domain)
-		if [[ ! -z $(echo "$results" | awk '$4 == "NS" {print$4}') ]]; then
-			domainauthns=$(echo -e "$results" | awk '{print$5}')
-			break
+		results=$(dig +time=2 +tries=1 +noall +authority @$ns $domain | awk '$4 == "NS" {print$5}')
+		if [[ ! -z $results ]]; then
+		for ns2 in $results; do
+			if [[ -z $(echo $tldns | grep $ns2) ]]; then
+				domainauthns="${results}"
+				break 2
+			fi
+		done
 		fi
 	done
 
@@ -93,8 +97,12 @@ resolve_auth_ns() {
 				fi
 			else
 				echo "Unable to resolve $authns"
+				resolve_fail=$((resolve_fail+1))
 			fi
 		done
+		if [[ $resolve_fail -gt 0 ]]; then
+			exit 16
+		fi
 	else
 		echo "No auth NS found for $domain"
 		exit 11
