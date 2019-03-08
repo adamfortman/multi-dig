@@ -174,8 +174,6 @@ check_exist() {
 	# set the variables accordingly.
     if [[ ! -z $to_check && ${!to_check} != "record" ]]; then
 		return
-#	elif [[ ${!to_check} == "domain" ]]; then
-#		export "${!to_check}=${value}"
 	elif [[ ${!to_check} == "record" ]]; then
 		record="${record} ${value^^}"
 	elif [[ ${!to_check} == "ns_info" ]]; then
