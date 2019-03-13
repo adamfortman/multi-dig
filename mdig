@@ -65,10 +65,12 @@ resolve_auth_ns() {
 	rootns="${sub}.root-servers.net"
 
 	# Get tld authoritative NS
-	tldns=$(dig +time=2 +tries=1 +noall +authority @$rootns $domain | awk '{print$5}')
+	tldns=$(dig +time=2 +tries=1 +noall +authority @$rootns $domain | awk '$4 == "NS" {print$5}')
 
 	# Check for domain against tld's authoritative NS
 	# If found, set and break out of loop
+	# There is a second check to account for country
+	# tlds that require a second lookup
 	for ns in $tldns; do
 		results=$(dig +time=2 +tries=1 +noall +authority @$ns $domain | awk '$4 == "NS" {print$5}')
 		if [[ ! -z $results ]]; then
