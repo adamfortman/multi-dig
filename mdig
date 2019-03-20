@@ -248,7 +248,9 @@ if [[ -z $record ]]; then
 fi
 
 # get authoritative nameservers
-resolve_auth_ns
+if [[ $which_ns == "all" || $which_ns == "auth" || -z $which_ns ]]; then
+	resolve_auth_ns
+fi
 
 # print ns report of domain, bit nicer than trying to `whois | egrep -i 'name ?server'`
 # so many different ways they could be listed and sometime's not even on the same line!
