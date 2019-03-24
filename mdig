@@ -84,9 +84,10 @@ resolve_auth_ns() {
 	done
 
 	# If auth nameservers were found, try to resolve them
+	# from a public nameserver
 	if [[ ! -z $domainauthns ]]; then
 		for authns in $domainauthns; do
-			authnsip=$(dig +time=2 +tries=1 +short $authns @$authns)
+			authnsip=$(dig +time=2 +tries=1 +short $authns @8.8.8.8)
 			# if can resolve authns, create/append to nslist
 			# else inform that an ns couldn't be resolved
 			if [[ ! -z $authnsip ]]; then
