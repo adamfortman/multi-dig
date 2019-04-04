@@ -1,4 +1,5 @@
 #!/bin/bash
+tabs 4
 
 custom_nameservers="Level3 209.244.0.3 209.244.0.4\n\
 Verisign 64.6.64.6 64.6.65.6\n\
@@ -114,19 +115,22 @@ print_help() {
 	# print the helps
 	echo -e "Usage: $0 <options> <record(s)> <domain>\n
 Options:
-	-h|--help   - prints this message
+	-h|--help	- prints this message
 	--all		- check against authoritative, custom, and local resolvers
-	-a|--auth   - check against authoritative resolver list (default)
-	-c|--custom - check against custom public resolver list only
-	-l|--local  - check against local resolvers found in /etc/resolv.conf
-	--nsinfo    - print the authoritative nameservers and their IP addresses\n"
+	-a|--auth	- check against authoritative resolver list (default)
+	-c|--custom	- check against custom public resolver list only
+	-l|--local	- check against local resolvers found in /etc/resolv.conf
+	--noh		- do not print report headers
+	--nsinfo	- print the authoritative nameservers and their IP addresses\n"
 	exit 1
 }
 
 custom_list() {
 	# check for dns records from custom nameserver list
 	if [[ ! -z $custom_nameservers ]]; then
-		echo -e "===Custom nameserver list===\n"
+		if [[ $noh -ne 1 ]]; then
+			echo -e "===Custom nameserver list===\n"
+		fi
 		while read provider primary secondary; do
 			for ip in $primary $secondary; do
 				printf "\e[01;32mresults from $provider [ $ip ]\e[0m\n"
@@ -141,7 +145,9 @@ custom_list() {
 auth() {
 	# check for dns records from authoritative nameservers
 	if [[ ! -z $nslist ]]; then
-		echo -e "===Authoritative nameservers===\n"
+		if [[ $noh -ne 1 ]]; then
+			echo -e "===Authoritative nameservers===\n"
+		fi
 		while read provider ip; do
 			printf "\e[01;32mresults from $provider [ $ip ]\e[0m\n"
 			digall $ip | sed -r 's/^/\t/g'
@@ -155,7 +161,9 @@ local_resolve() {
 	# check for dns records from local resolvers
 	local_ns=$(awk '/^nameserver/ {print$2}' /etc/resolv.conf)
 	if [[ ! -z $local_ns ]]; then
-		echo -e "===Local resolvers===\n"
+		if [[ $noh -ne 1 ]]; then
+			echo -e "===Local resolvers===\n"
+		fi
 		for ns in $local_ns; do
 			printf "\e[01;32mresults from local resolver [ $ns ]\e[0m\n"
 			digall $ns | sed -r 's/^/\t/g'
@@ -179,8 +187,6 @@ check_exist() {
 		return
 	elif [[ ${!to_check} == "record" ]]; then
 		record="${record} ${value^^}"
-	elif [[ ${!to_check} == "ns_info" ]]; then
-		ns_info=1
 	else
 		export "${!to_check}=${value}"
     fi
@@ -188,8 +194,11 @@ check_exist() {
 
 while (( "$#" )); do
 	case ${1,,} in
+		--noh)
+			check_exist noh 1
+			;;
 		--nsinfo)
-			check_exist ns_info
+			check_exist ns_info 1
 			;;
 		--all)
 			check_exist which_ns all
@@ -256,7 +265,9 @@ fi
 # print ns report of domain, bit nicer than trying to `whois | egrep -i 'name ?server'`
 # so many different ways they could be listed and sometime's not even on the same line!
 if [[ $ns_info ]]; then
-	echo -e "===Authoritative nameserver report===\n"
+	if [[ $noh -ne 1 ]]; then
+		echo -e "===Authoritative nameserver report===\n"
+	fi
 	while read provider ip; do
 		echo "$provider [$ip]"
 	done < <(echo -e $nslist) | column -t
