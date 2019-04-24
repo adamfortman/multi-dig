@@ -236,6 +236,9 @@ while (( "$#" )); do
 		txt)
 			check_exist record $1
 			;;
+		cname)
+			check_exist record $1
+			;;
 		*.*)
 			check_exist domain $1
 			;;
