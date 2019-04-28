@@ -1,5 +1,5 @@
 #!/bin/bash
-tabs 4
+tabs -4
 
 custom_nameservers="Level3 209.244.0.3 209.244.0.4\n\
 Verisign 64.6.64.6 64.6.65.6\n\
