@@ -66,49 +66,75 @@ resolve_auth_ns() {
 	rootns="${sub}.root-servers.net"
 
 	# Get tld authoritative NS
-	tldns=$(dig +time=2 +tries=1 +noall +authority @$rootns $domain | awk '$4 == "NS" {print$5}')
+	tldns=$(dig +time=2 +tries=1 +noall +authority @$rootns $domain | awk '$4 == "NS" {print$NF}')
 
 	# Check for domain against tld's authoritative NS
 	# If found, set and break out of loop
 	# There is a second check to account for country
 	# tlds that require a second lookup
 	for ns in $tldns; do
-		results=$(dig +time=2 +tries=1 +noall +authority @$ns $domain | awk '$4 == "NS" {print$5}')
-		if [[ ! -z $results ]]; then
-		for ns2 in $results; do
-			if [[ -z $(echo $tldns | grep $ns2) ]]; then
-				domainauthns="${results}"
-				break 2
-			fi
-		done
+		results=$(dig +time=2 +tries=1 +noall +authority @$ns $domain | awk '$4 == "NS" {print$NF}')
+		if [[ ! -z "$results" ]]; then
+			for ns2 in $results; do
+				if [[ -z $(echo "$tldns" | grep "$ns2") ]]; then
+					nsfound=1
+					break 2
+				fi
+			done
 		fi
 	done
 
-	# If auth nameservers were found, try to resolve them
-	# from a public nameserver
-	if [[ ! -z $domainauthns ]]; then
-		for authns in $domainauthns; do
-			authnsip=$(dig +time=2 +tries=1 +short $authns @8.8.8.8)
-			# if can resolve authns, create/append to nslist
-			# else inform that an ns couldn't be resolved
-			if [[ ! -z $authnsip ]]; then
-				if [[ ! -z $nslist ]]; then
-					nslist="$authns $authnsip\n$nslist"
-				else
-					nslist="$authns $authnsip"
-				fi
-			else
-				echo "Unable to resolve $authns"
-				resolve_fail=$((resolve_fail+1))
-			fi
-		done
-		if [[ $resolve_fail -gt 0 ]]; then
-			exit 16
-		fi
-	else
+	if [[ $nsfound -ne 1 ]]; then
 		echo "No auth NS found for $domain"
 		exit 11
 	fi
+
+	for ns in $results; do
+		result=$(dig +time=2 +tries=1 +short $ns)
+		if [[ $result ]]; then
+			for res in $result; do
+				if [[ -z $nslist ]]; then
+					nslist="$ns $res"
+				else nslist="$ns $res\n$nslist"
+				fi
+			done
+		elif [[ -z $nslist ]]; then
+			nslist="$ns ${result-none}"
+		else 
+			nslist="$ns ${result-none} $nslist"
+		fi
+	done
+
+	if [[ -z $nslist ]]; then
+		echo "Could not resolve auth NS for $domain"
+		exit 12
+	fi
+
+	# If auth nameservers were found, try to resolve them
+	# from a public nameserver
+#	if [[ ! -z $domainauthns ]]; then
+#		for authns in $domainauthns; do
+#			authnsip=$(dig +time=2 +tries=1 +short $authns @8.8.8.8)
+#			# if can resolve authns, create/append to nslist
+#			# else inform that an ns couldn't be resolved
+#			if [[ ! -z $authnsip ]]; then
+#				if [[ ! -z $nslist ]]; then
+#					nslist="$authns $authnsip\n$nslist"
+#				else
+#					nslist="$authns $authnsip"
+#				fi
+#			else
+#				echo "Unable to resolve $authns"
+#				resolve_fail=$((resolve_fail+1))
+#			fi
+#		done
+#		if [[ $resolve_fail -gt 0 ]]; then
+#			exit 16
+#		fi
+#	else
+#		echo "No auth NS found for $domain"
+#		exit 11
+#	fi
 }
 
 print_help() {
@@ -151,7 +177,7 @@ auth() {
 		while read provider ip; do
 			printf "\e[01;32mresults from $provider [ $ip ]\e[0m\n"
 			digall $ip | sed -r 's/^/\t/g'
-		done < <(echo -e $nslist)
+		done < <(echo -e "$nslist")
 	else
 		echo "If you get this message, something happened with \$nslist between populating the variable and now. The script probably needs debugging if you got here. No nameserver list should have exited earlier."
 	fi
@@ -273,7 +299,7 @@ if [[ $ns_info ]]; then
 	fi
 	while read provider ip; do
 		echo "$provider [$ip]"
-	done < <(echo -e $nslist) | column -t
+	done < <(echo -e "$nslist") | column -t
 	exit
 fi
 
