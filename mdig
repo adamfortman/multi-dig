@@ -99,9 +99,9 @@ resolve_auth_ns() {
 				fi
 			done
 		elif [[ -z $nslist ]]; then
-			nslist="$ns ${result-none}"
+			nslist="$ns ${result:-none}"
 		else 
-			nslist="$ns ${result-none} $nslist"
+			nslist="$ns ${result:-none}\n$nslist"
 		fi
 	done
 
@@ -175,8 +175,13 @@ auth() {
 			echo -e "===Authoritative nameservers===\n"
 		fi
 		while read provider ip; do
-			printf "\e[01;32mresults from $provider [ $ip ]\e[0m\n"
-			digall $ip | sed -r 's/^/\t/g'
+			if [[ $ip != "none" ]]; then
+				printf "\e[01;32mresults from $provider [ $ip ]\e[0m\n"
+				digall $ip | sed -r 's/^/\t/g'
+			else
+				printf "\e[01;32mcouldn't resolve $provider\e[0m\n"
+				echo ""
+			fi
 		done < <(echo -e "$nslist")
 	else
 		echo "If you get this message, something happened with \$nslist between populating the variable and now. The script probably needs debugging if you got here. No nameserver list should have exited earlier."
