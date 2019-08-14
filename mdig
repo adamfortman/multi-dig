@@ -95,13 +95,13 @@ resolve_auth_ns() {
 			for res in $result; do
 				if [[ -z $nslist ]]; then
 					nslist="$ns $res"
-				else nslist="$ns $res\n$nslist"
+				else nslist="$nslist\n$ns $res"
 				fi
 			done
 		elif [[ -z $nslist ]]; then
 			nslist="$ns ${result:-none}"
 		else 
-			nslist="$ns ${result:-none}\n$nslist"
+			nslist="$nslist\n$ns ${result:-none}"
 		fi
 	done
 
