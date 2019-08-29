@@ -8,6 +8,14 @@ This bash script is a spin off the basic dig functionality. Default usage finds 
 
 You must have brew installed -- https://brew.sh/
 
+Modify your PATH to include the gnubin:
+
+```
+echo 'PATH=/usr/local/opt/gnu-sed/libexec/gnubin:$PATH' >> ~/.profile
+source .profile
+```
+
+Now, to actually get everything else set up:
 ```
 brew install gnu-sed
 brew install bash
@@ -20,6 +28,8 @@ mv -v ~/src/multi-dig/update-mdig-macosx ~/bin/update-mdig
 chmod u+x ~/bin/mdig ~/bin/update-mdig
 ~/bin/update-mdig
 ```
+
+You should be all set to go!
 
 ## Usage
 

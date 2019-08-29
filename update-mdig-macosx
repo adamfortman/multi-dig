@@ -1,7 +1,5 @@
 #!/bin/bash
 
-PATH=/usr/local/opt/gnu-sed/libexec/gnubin:$PATH
-
 cd ~/src/multi-dig && git stash && git pull
 
 if [[ -z $(head -n1 ~/src/multi-dig/mdig | grep 'Cellar') ]]; then
