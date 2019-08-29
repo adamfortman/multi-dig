@@ -4,6 +4,22 @@
 
 This bash script is a spin off the basic dig functionality. Default usage finds the domain's authoritative nameservers and performs a lookup of various record types against those nameservers. Records can also be checked against the custom list of public nameservers as well as local resolvers found in `/etc/resolv.conf`.
 
+## Installation -- MacOSX
+
+You must have brew installed -- https://brew.sh/
+
+```
+brew install gnu-sed
+brew install bash
+mkdir -vp ~/src
+cd ~/src
+git clone https://github.com/adamfortman/multi-dig
+mkdir ~/bin
+ln -s ~/src/multi-dig/mdig ~/bin/mdig
+ln -s ~/src/multi-dig/update-mdig ~/bin/update-mdig
+chmod u+x ~/bin/mdig ~/bin/update-mdig
+~/bin/update-mdig
+```
 
 ## Usage
 
