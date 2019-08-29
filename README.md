@@ -16,7 +16,7 @@ cd ~/src
 git clone https://github.com/adamfortman/multi-dig
 mkdir ~/bin
 ln -s ~/src/multi-dig/mdig ~/bin/mdig
-ln -s ~/src/multi-dig/update-mdig ~/bin/update-mdig
+mv -v ~/src/multi-dig/update-mdig-macosx ~/bin/update-mdig
 chmod u+x ~/bin/mdig ~/bin/update-mdig
 ~/bin/update-mdig
 ```
